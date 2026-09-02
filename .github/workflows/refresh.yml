@@ -2,7 +2,7 @@ name: Refresh Go-Live Board
 
 on:
   schedule:
-    - cron: '*/15 * * * *'
+    - cron: '*/5 * * * *'
   workflow_dispatch: {}
   repository_dispatch:
     types: [sheet-updated]
