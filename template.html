@@ -1,0 +1,442 @@
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Go-Live Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800&family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #EEF1F0;
+    --surface: #FFFFFF;
+    --surface-2: #F5F7F6;
+    --ink: #1B2023;
+    --muted: #5B6668;
+    --border: #D7DEDD;
+    --accent: #E8483A;
+    --accent-ink: #FFFFFF;
+    --accent2: #128F86;
+    --accent2-soft: #DCF3F1;
+    --live: #E8483A;
+    --live-soft: #FBE1DD;
+    --shadow: rgba(20, 24, 26, 0.08);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #14181A;
+      --surface: #1C2224;
+      --surface-2: #20272A;
+      --ink: #E9EEEC;
+      --muted: #93A0A0;
+      --border: #2A3335;
+      --accent: #FF6A52;
+      --accent-ink: #191110;
+      --accent2: #3AD9CC;
+      --accent2-soft: #17332F;
+      --live: #FF6A52;
+      --live-soft: #3A211C;
+      --shadow: rgba(0, 0, 0, 0.4);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #14181A;
+    --surface: #1C2224;
+    --surface-2: #20272A;
+    --ink: #E9EEEC;
+    --muted: #93A0A0;
+    --border: #2A3335;
+    --accent: #FF6A52;
+    --accent-ink: #191110;
+    --accent2: #3AD9CC;
+    --accent2-soft: #17332F;
+    --live: #FF6A52;
+    --live-soft: #3A211C;
+    --shadow: rgba(0, 0, 0, 0.4);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Public Sans', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.45;
+  }
+  a { color: var(--accent2); }
+  .page { max-width: 700px; margin: 0 auto; padding: 32px 20px 72px; }
+
+  /* ---- masthead ---- */
+  .masthead { margin-bottom: 28px; }
+  .tally { display: inline-flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .tally .dot {
+    width: 9px; height: 9px; border-radius: 50%; background: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
+  }
+  .tally-label {
+    font-family: 'Public Sans', sans-serif; font-size: 12px; font-weight: 700;
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted);
+  }
+  h1 {
+    font-family: 'Big Shoulders Display', system-ui, sans-serif;
+    font-weight: 800; font-size: clamp(40px, 10vw, 56px); line-height: 0.94;
+    letter-spacing: 0.005em; margin: 0 0 10px; text-transform: uppercase;
+    text-wrap: balance;
+  }
+  .masthead .sub { margin: 0 0 14px; color: var(--muted); font-size: 15.5px; max-width: 46ch; }
+  .you {
+    display: inline-block; margin: 0; max-width: 100%;
+    font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--muted);
+    background: var(--surface-2); border: 1px solid var(--border);
+    padding: 6px 12px; border-radius: 14px;
+  }
+  .you #you-clock { color: var(--ink); font-weight: 700; font-variant-numeric: tabular-nums; }
+
+  /* ---- intake form ---- */
+  .intake {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+    padding: 22px; margin: 20px 0 34px; box-shadow: 0 1px 2px var(--shadow);
+  }
+  .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+  .field[hidden] { display: none; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 4px; }
+  label {
+    font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--muted);
+  }
+  input, select {
+    font-family: 'Public Sans', sans-serif; font-size: 15px; color: var(--ink);
+    background: var(--surface-2); border: 1px solid var(--border); border-radius: 9px;
+    padding: 10px 12px; width: 100%;
+  }
+  input[type="time"] { font-family: 'JetBrains Mono', monospace; }
+  .handle-wrap { display: flex; align-items: center; background: var(--surface-2); border: 1px solid var(--border); border-radius: 9px; padding: 0 12px; }
+  .handle-wrap .at { color: var(--muted); font-weight: 700; }
+  .handle-wrap input { border: none; background: transparent; padding: 10px 0 10px 4px; }
+  input:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible {
+    outline: 2px solid var(--accent2); outline-offset: 2px;
+  }
+  button[type="submit"] {
+    width: 100%; margin-top: 6px; padding: 13px 18px; border: none; border-radius: 10px;
+    background: var(--accent); color: var(--accent-ink); font-weight: 700; font-size: 15px;
+    letter-spacing: 0.01em; cursor: pointer;
+  }
+  button[type="submit"]:disabled { opacity: 0.55; cursor: default; }
+  button[type="submit"]:hover:not(:disabled) { filter: brightness(1.05); }
+  .form-note { min-height: 18px; margin: 10px 0 0; font-size: 13px; color: var(--muted); }
+
+  /* ---- board ---- */
+  .board-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+  .board h2 {
+    font-family: 'Big Shoulders Display', system-ui, sans-serif; font-weight: 700;
+    font-size: 26px; text-transform: uppercase; letter-spacing: 0.02em; margin: 0;
+  }
+  .board-summary { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chip {
+    font-size: 12px; font-weight: 700; color: var(--muted); background: var(--surface-2);
+    border: 1px solid var(--border); padding: 5px 10px; border-radius: 100px;
+    font-variant-numeric: tabular-nums;
+  }
+  .chip-live { color: var(--live); background: var(--live-soft); border-color: transparent; }
+
+  .roster-list { display: flex; flex-direction: column; gap: 10px; }
+  .empty {
+    color: var(--muted); background: var(--surface); border: 1px dashed var(--border);
+    border-radius: 14px; padding: 26px 20px; text-align: center; font-size: 14.5px;
+  }
+  .row {
+    display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 16px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+    padding: 14px 16px;
+  }
+  .row-time { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; min-width: 84px; }
+  .row-time .clock {
+    font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 20px;
+    font-variant-numeric: tabular-nums; letter-spacing: -0.01em;
+  }
+  .pill {
+    display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 800;
+    letter-spacing: 0.08em; padding: 3px 8px; border-radius: 100px;
+  }
+  .pill-live { background: var(--live-soft); color: var(--live); }
+  .pill-soon { background: var(--accent2-soft); color: var(--accent2); }
+  .pill .pulse {
+    width: 6px; height: 6px; border-radius: 50%; background: currentColor;
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+  @media (prefers-reduced-motion: reduce) { .pill .pulse { animation: none; } }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+
+  .row-who { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .row-name {
+    font-weight: 700; text-decoration: none; color: var(--ink); font-size: 15px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .row-name:hover { color: var(--accent2); }
+  .row-handle { color: var(--muted); font-size: 13px; font-family: 'JetBrains Mono', monospace; }
+  .row-native { color: var(--muted); font-size: 12px; }
+
+  @media (max-width: 480px) {
+    .field-row { grid-template-columns: 1fr; }
+    .row { grid-template-columns: 1fr; }
+  }
+
+  .foot { margin-top: 40px; }
+  .foot p { color: var(--muted); font-size: 12.5px; max-width: 52ch; }
+  .foot a { color: var(--muted); text-decoration-color: var(--border); }
+</style>
+
+<div class="page">
+  <header id="masthead" class="masthead">
+    <div class="tally"><span class="dot" aria-hidden="true"></span><span class="tally-label">Sign-up sheet</span></div>
+    <h1>Go-Live Board</h1>
+    <p class="sub">Add the time you usually go live on TikTok. Everyone who opens this link sees it converted straight into their own clock &mdash; no time-zone math for anyone.</p>
+    <p class="you">Your local time &mdash; <span id="you-clock">--:--</span> <span id="you-tz">(detecting&hellip;)</span></p>
+  </header>
+
+  <section id="intake" class="intake">
+    <iframe name="ghost_target" id="ghost-frame" title="" style="display:none" aria-hidden="true"></iframe>
+    <form id="signup-form" action="https://docs.google.com/forms/d/e/1FAIpQLSeK1_c6qJmzc3dhzMlo0iS8H7L1VQqiGeT9ImHrpWZ2wqjuMw/formResponse" method="POST" target="ghost_target" autocomplete="off">
+      <div class="field">
+        <label for="f-name">Name</label>
+        <input id="f-name" name="entry.1470223098" type="text" maxlength="60" required placeholder="Your name" />
+      </div>
+      <div class="field">
+        <label for="f-handle">TikTok @handle</label>
+        <div class="handle-wrap"><span class="at">@</span><input id="f-handle" name="entry.1254732959" type="text" maxlength="40" required placeholder="username" pattern="[A-Za-z0-9._]+" /></div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="f-time">Usually goes live at</label>
+          <input id="f-time" type="time" required />
+          <input type="hidden" id="f-hour" name="entry.445123939_hour" />
+          <input type="hidden" id="f-minute" name="entry.445123939_minute" />
+        </div>
+        <div class="field">
+          <label for="f-tz">In this timezone</label>
+          <select id="f-tz" name="entry.284800835" required>
+            <option value="" disabled selected>Choose one</option>
+            <option value="Hawaii">Hawaii Time (HST)</option>
+            <option value="Alaska">Alaska Time (AKT)</option>
+            <option value="Pacific">Pacific Time (PT)</option>
+            <option value="Mountain">Mountain Time (MT)</option>
+            <option value="Central">Central Time (CT)</option>
+            <option value="Eastern">Eastern Time (ET)</option>
+            <option value="UK">UK Time</option>
+            <option value="Central Europe">Central Europe Time</option>
+            <option value="Other (I'll type it in)">Other (type it in)</option>
+          </select>
+        </div>
+      </div>
+      <div class="field" id="other-field" hidden>
+        <label for="f-other">Type your timezone or city</label>
+        <input id="f-other" name="entry.2062374795" type="text" maxlength="60" placeholder="e.g. Berlin, IST, GMT+2" />
+      </div>
+      <button type="submit" id="f-submit">Add me to the board</button>
+      <p class="form-note" id="form-note" role="status" aria-live="polite"></p>
+    </form>
+  </section>
+
+  <section id="board" class="board">
+    <div class="board-head">
+      <h2>Line-up</h2>
+      <div class="board-summary" id="board-summary"></div>
+    </div>
+    <div class="roster-list" id="roster-list"></div>
+  </section>
+
+  <footer id="foot" class="foot">
+    <p>Times are each creator&rsquo;s usual schedule, not a guaranteed start &mdash; tap a name to open their TikTok. Submitting again with the same handle updates your time instead of duplicating you. New sign-ups usually show up here within an hour.</p>
+  </footer>
+</div>
+
+<script id="roster-data" type="application/json">[]</script>
+<script id="app-script">
+(function () {
+  'use strict';
+
+  var state = { roster: [] };
+  try {
+    state.roster = JSON.parse(document.getElementById('roster-data').textContent || '[]');
+  } catch (e) { state.roster = []; }
+
+  function escapeHTML(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function pad2(n) { return (n < 10 ? '0' : '') + n; }
+
+  function tzOffsetMs(date, tz) {
+    var dtf = new Intl.DateTimeFormat('en-US', {
+      timeZone: tz, hourCycle: 'h23',
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit'
+    });
+    var parts = {};
+    dtf.formatToParts(date).forEach(function (p) { parts[p.type] = p.value; });
+    var asUTC = Date.UTC(+parts.year, +parts.month - 1, +parts.day, +parts.hour, +parts.minute, +parts.second);
+    return asUTC - date.getTime();
+  }
+  function zonedWallTimeTodayUTC(hh, mm, tz, baseDate) {
+    baseDate = baseDate || new Date();
+    var y = baseDate.getUTCFullYear(), mo = baseDate.getUTCMonth(), d = baseDate.getUTCDate();
+    var guess = new Date(Date.UTC(y, mo, d, hh, mm, 0));
+    var off1 = tzOffsetMs(guess, tz);
+    var instant = new Date(guess.getTime() - off1);
+    var off2 = tzOffsetMs(instant, tz);
+    return new Date(Date.UTC(y, mo, d, hh, mm, 0) - off2);
+  }
+  function statusFor(hh, mm, tz, now) {
+    var today = zonedWallTimeTodayUTC(hh, mm, tz, now);
+    var DAY = 86400000;
+    var next = today.getTime() >= now.getTime() ? today : new Date(today.getTime() + DAY);
+    var prev = today.getTime() <= now.getTime() ? today : new Date(today.getTime() - DAY);
+    var sinceStart = now.getTime() - prev.getTime();
+    var untilNext = next.getTime() - now.getTime();
+    if (sinceStart >= -2 * 60000 && sinceStart <= 90 * 60000) return { state: 'live', prev: prev, next: next };
+    if (untilNext <= 60 * 60000) return { state: 'soon', prev: prev, next: next };
+    return { state: 'later', prev: prev, next: next };
+  }
+  function viewerTZ() {
+    try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; }
+    catch (e) { return 'UTC'; }
+  }
+  function fmtTimeInTZ(date, tz) {
+    try { return new Intl.DateTimeFormat('en-US', { timeZone: tz, hour: 'numeric', minute: '2-digit' }).format(date); }
+    catch (e) { return '--:--'; }
+  }
+
+  var TZ_NAMES = {
+    'Pacific/Honolulu': 'Hawaii Time', 'America/Anchorage': 'Alaska Time',
+    'America/Los_Angeles': 'Pacific Time', 'America/Phoenix': 'Arizona Time',
+    'America/Denver': 'Mountain Time', 'America/Chicago': 'Central Time',
+    'America/New_York': 'Eastern Time', 'America/Sao_Paulo': 'Brasília Time',
+    'Europe/London': 'UK Time', 'Europe/Lisbon': 'Western European Time',
+    'Europe/Paris': 'Central European Time', 'Europe/Berlin': 'Central European Time',
+    'Europe/Madrid': 'Central European Time', 'Europe/Rome': 'Central European Time',
+    'Europe/Athens': 'Eastern European Time', 'Europe/Moscow': 'Moscow Time',
+    'Africa/Lagos': 'West Africa Time', 'Africa/Johannesburg': 'South Africa Time',
+    'Africa/Cairo': 'Eastern European Time', 'Asia/Dubai': 'Gulf Time',
+    'Asia/Karachi': 'Pakistan Time', 'Asia/Kolkata': 'India Time',
+    'Asia/Dhaka': 'Bangladesh Time', 'Asia/Bangkok': 'Indochina Time',
+    'Asia/Jakarta': 'Western Indonesia Time', 'Asia/Shanghai': 'China Time',
+    'Asia/Hong_Kong': 'Hong Kong Time', 'Asia/Singapore': 'Singapore Time',
+    'Asia/Tokyo': 'Japan Time', 'Asia/Seoul': 'Korea Time',
+    'Australia/Perth': 'Western Australia Time', 'Australia/Adelaide': 'Central Australia Time',
+    'Australia/Sydney': 'Eastern Australia Time', 'Pacific/Auckland': 'New Zealand Time',
+    'UTC': 'Coordinated Universal Time'
+  };
+  function tzAbbr(tz) {
+    try {
+      var parts = new Intl.DateTimeFormat('en-US', { timeZone: tz, timeZoneName: 'short' }).formatToParts(new Date());
+      var abbr = parts.filter(function (p) { return p.type === 'timeZoneName'; })[0];
+      return abbr ? abbr.value : '';
+    } catch (e) { return ''; }
+  }
+  function friendlyTzLabel(tz) {
+    var abbr = tzAbbr(tz);
+    var name = TZ_NAMES[tz];
+    if (name) return name + (abbr ? ' (' + abbr + ')' : '');
+    return (abbr ? abbr + ' · ' : '') + String(tz).replace(/_/g, ' ');
+  }
+
+  function sortedRoster(roster, now) {
+    return roster.slice().sort(function (a, b) {
+      var sa = statusFor(a.hh, a.mm, a.tz, now), sb = statusFor(b.hh, b.mm, b.tz, now);
+      var ka = sa.state === 'live' ? now.getTime() : sa.next.getTime();
+      var kb = sb.state === 'live' ? now.getTime() : sb.next.getTime();
+      return ka - kb;
+    });
+  }
+
+  function rowHTML(entry, now, viewerTz) {
+    var st = statusFor(entry.hh, entry.mm, entry.tz, now);
+    var refInstant = st.state === 'live' ? st.prev : st.next;
+    var viewerTimeStr = fmtTimeInTZ(refInstant, viewerTz);
+    var h12 = entry.hh % 12 === 0 ? 12 : entry.hh % 12;
+    var creatorTimeStr = h12 + ':' + pad2(entry.mm) + (entry.hh < 12 ? ' AM' : ' PM');
+    var creatorTzLabel = friendlyTzLabel(entry.tz);
+    var pill = st.state === 'live'
+      ? '<span class="pill pill-live"><span class="pulse" aria-hidden="true"></span>LIVE NOW</span>'
+      : st.state === 'soon' ? '<span class="pill pill-soon">SOON</span>' : '';
+    return '<article class="row">' +
+      '<div class="row-time"><span class="clock">' + viewerTimeStr + '</span>' + pill + '</div>' +
+      '<div class="row-who">' +
+        '<a class="row-name" href="https://www.tiktok.com/@' + encodeURIComponent(entry.handleKey) + '" target="_blank" rel="noopener">' + escapeHTML(entry.name) + '</a>' +
+        '<span class="row-handle">@' + escapeHTML(entry.handle) + '</span>' +
+        '<span class="row-native">' + creatorTimeStr + ' their time · ' + escapeHTML(creatorTzLabel) + '</span>' +
+      '</div>' +
+    '</article>';
+  }
+
+  function summaryHTML(roster, now) {
+    if (!roster.length) return '';
+    var live = roster.filter(function (e) { return statusFor(e.hh, e.mm, e.tz, now).state === 'live'; }).length;
+    var bits = [];
+    if (live > 0) bits.push('<span class="chip chip-live">' + live + ' live now</span>');
+    bits.push('<span class="chip">' + roster.length + ' creator' + (roster.length === 1 ? '' : 's') + ' on the board</span>');
+    return bits.join('');
+  }
+
+  function renderApp() {
+    var now = new Date();
+    var vtz = viewerTZ();
+    var youClock = document.getElementById('you-clock');
+    var youTz = document.getElementById('you-tz');
+    if (youClock) youClock.textContent = fmtTimeInTZ(now, vtz);
+    if (youTz) youTz.textContent = friendlyTzLabel(vtz);
+    var sorted = sortedRoster(state.roster, now);
+    var summaryEl = document.getElementById('board-summary');
+    if (summaryEl) summaryEl.innerHTML = summaryHTML(state.roster, now);
+    var listEl = document.getElementById('roster-list');
+    if (listEl) {
+      listEl.innerHTML = sorted.length
+        ? sorted.map(function (e) { return rowHTML(e, now, vtz); }).join('')
+        : '<p class="empty">No one&rsquo;s on the board yet. Be the first &mdash; fill out the form above.</p>';
+    }
+  }
+
+  function wireForm() {
+    var form = document.getElementById('signup-form');
+    var timeInput = document.getElementById('f-time');
+    var hourField = document.getElementById('f-hour');
+    var minuteField = document.getElementById('f-minute');
+    var handleInput = document.getElementById('f-handle');
+    var tzSelect = document.getElementById('f-tz');
+    var otherField = document.getElementById('other-field');
+    var ghost = document.getElementById('ghost-frame');
+    var submitBtn = document.getElementById('f-submit');
+    var noteEl = document.getElementById('form-note');
+    if (!form || !ghost) return;
+
+    tzSelect.addEventListener('change', function () {
+      otherField.hidden = tzSelect.value !== "Other (I'll type it in)";
+    });
+
+    form.addEventListener('submit', function () {
+      var t = timeInput.value || '';
+      var parts = t.split(':');
+      hourField.value = String(parseInt(parts[0], 10) || 0);
+      minuteField.value = String(parseInt(parts[1], 10) || 0);
+      handleInput.value = handleInput.value.trim().replace(/^@+/, '');
+      submitBtn.disabled = true;
+      noteEl.textContent = 'Saving…';
+      // no preventDefault — the browser submits to the hidden iframe itself
+    });
+
+    ghost.addEventListener('load', function () {
+      if (!submitBtn.disabled) return; // ignore the iframe's own initial blank load
+      noteEl.textContent = 'You’re on the board — it can take up to an hour to show below.';
+      form.reset();
+      otherField.hidden = true;
+      submitBtn.disabled = false;
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    renderApp();
+    wireForm();
+    setInterval(renderApp, 30000);
+  });
+})();
+</script>

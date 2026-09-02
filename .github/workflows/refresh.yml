@@ -1,0 +1,34 @@
+name: Refresh Go-Live Board
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pages-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Rebuild index.html from the latest sign-ups
+        run: python3 refresh.py
+
+      - name: Commit and push if the board changed
+        run: |
+          git config user.name "go-live-board-bot"
+          git config user.email "actions@users.noreply.github.com"
+          if git diff --quiet -- index.html; then
+            echo "No changes."
+          else
+            git add index.html
+            git commit -m "Refresh board from sign-ups"
+            git push
+          fi
